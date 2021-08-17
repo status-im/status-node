@@ -1,0 +1,13 @@
+{
+  "name": "status-node",
+  "version": "0.0.0",
+  "private": true,
+  "files": [],
+  "devDependencies": {
+    "create-dmg": "status-im/create-dmg#678fbd4",
+    "fileicon": "0.2.4"
+  },
+  "engines": {
+    "node": ">=8"
+  }
+}

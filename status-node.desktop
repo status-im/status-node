@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Status Node
+Exec=status_node
+Icon=status
+Comment=Status Node
+Terminal=true
+Categories=Network;

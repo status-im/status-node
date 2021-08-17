@@ -1,0 +1,105 @@
+library 'status-jenkins-lib@ci-linux-signing'
+
+pipeline {
+  agent {
+    label 'macos'
+  }
+
+  parameters {
+    string(
+      name: 'BUILD_TYPE',
+      description: 'Specify build type. Values: pr / nightly / release',
+      defaultValue: 'pr',
+    )
+  }
+
+  options {
+    timestamps()
+    /* Prevent Jenkins jobs from running forever */
+    timeout(time: 15, unit: 'MINUTES')
+    /* manage how many builds we keep */
+    buildDiscarder(logRotator(
+      numToKeepStr: '10',
+      daysToKeepStr: '30',
+      artifactNumToKeepStr: '3',
+    ))
+  }
+
+  environment {
+    TARGET = 'macos'
+    /* Improve make performance */
+    MAKEFLAGS = '-j4'
+    /* Disable colors in Nim compiler logs */
+    NIMFLAGS = '--colors:off'
+    /* Qt location is pre-defined */
+    QTDIR = '/usr/local/qt/clang_64'
+    PATH = "${env.QTDIR}/bin:${env.PATH}"
+    /* Control output the filename */
+    STATUS_CLIENT_DMG = "pkg/${utils.pkgFilename('dmg')}"
+    /* Apple Team ID for Notarization */
+    MACOS_NOTARIZE_TEAM_ID = "DTX7Z4U3YA"
+  }
+
+  stages {
+    stage('Deps') {
+      steps { 
+        /* trigger fetching of git submodules */
+        sh 'make check-pkg-target-macos'
+        /* avoid re-compiling Nim by using cache */
+        cache(maxCacheSize: 250, caches: [[
+          $class: 'ArbitraryFileCache',
+          includes: '**/*',
+          path: 'vendor/nimbus-build-system/vendor/Nim/bin'
+        ]]) {
+          withCredentials([
+            usernamePassword( /* For fetching HomeBrew bottles. */
+              credentialsId: "status-im-auto-pkgs",
+              usernameVariable: 'GITHUB_USER',
+              passwordVariable: 'GITHUB_TOKEN'
+            )
+          ]) {
+            sh 'make deps'
+          }
+        }
+      }
+    }
+
+    stage('status-go') {
+      steps { sh 'make status-go' }
+    }
+
+    stage('Package') {
+      steps { script {
+        macos.bundle()
+      } }
+    }
+
+    stage('Notarize') {
+      when { expression { utils.isReleaseBuild() } }
+      steps { script {
+        macos.notarize()
+      } }
+    }
+
+    stage('Parallel Upload') {
+      parallel {
+        stage('Upload') {
+          steps { script {
+            env.PKG_URL = s3.uploadArtifact(env.STATUS_CLIENT_DMG)
+            jenkins.setBuildDesc(Dmg: env.PKG_URL)
+          } }
+        }
+        stage('Archive') {
+          steps { script {
+            archiveArtifacts(env.STATUS_CLIENT_DMG)
+          } }
+        }
+      }
+    }
+  }
+  post {
+    success { script { github.notifyPR(true) } }
+    failure { script { github.notifyPR(false) } }
+    always { cleanWs() }
+  }
+}

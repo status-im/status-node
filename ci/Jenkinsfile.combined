@@ -1,0 +1,87 @@
+library 'status-jenkins-lib@ci-linux-signing'
+
+pipeline {
+  agent { label 'linux' }
+
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+    /* Prevent Jenkins jobs from running forever */
+    timeout(time: 35, unit: 'MINUTES')
+    /* Limit builds retained */
+    buildDiscarder(logRotator(
+      numToKeepStr: '10',
+      daysToKeepStr: '30',
+      artifactNumToKeepStr: '10',
+    ))
+  }
+
+  parameters {
+    booleanParam(
+      name: 'PUBLISH',
+      description: 'Trigger publishing of build results to GitHub.',
+      defaultValue: getPublishDefault(params.PUBLISH),
+    )
+  }
+
+  stages {
+    stage('Build') {
+      parallel {
+        stage('Linux') { steps { script {
+          linux = jenkins.Build('status-node/platforms/linux')
+        } } }
+        stage('Windows') { steps { script {
+          windows = jenkins.Build('status-node/platforms/windows')
+        } } }
+        stage('MacOS') { steps { script {
+          macos = jenkins.Build('status-node/platforms/macos')
+        } } }
+      }
+    }
+    stage('Archive') {
+      steps { script {
+        sh('rm -f pkg/*')
+        jenkins.copyArts(linux)
+        jenkins.copyArts(windows)
+        jenkins.copyArts(macos)
+        sha = "pkg/${utils.pkgFilename('sha256')}"
+        dir('pkg') {
+          /* generate sha256 checksums for upload */
+          sh "sha256sum * | tee ../${sha}"
+          archiveArtifacts('*')
+        }
+      } }
+    }
+    stage('Upload') {
+      steps { script {
+        /* object for easier URLs handling */
+        urls = [
+          /* mobile */
+          Linux: utils.pkgUrl(linux),
+          Windows: utils.pkgUrl(windows),
+          MacOS: utils.pkgUrl(macos),
+          /* upload the sha256 checksums file too */
+          SHA: s3.uploadArtifact(sha),
+        ]
+        /* add URLs to the build description */
+        jenkins.setBuildDesc(urls)
+      } }
+    }
+    stage('Publish') {
+      when { expression { params.PUBLISH } }
+      steps { script {
+        github.publishReleaseFiles(repo: 'status-node');
+      } }
+    }
+  }
+}
+
+/* Helper that makes PUBLISH default to 'false' unless:
+ * - The build is for a release branch
+ * - A user explicitly specified a value
+ * Since release builds create and re-create GitHub drafts every time. */
+def Boolean getPublishDefault(Boolean previousValue) {
+  if (env.JOB_NAME.startsWith('status-node/release')) { return true }
+  if (previousValue != null) { return previousValue }
+  return false
+}

@@ -1,0 +1,85 @@
+library 'status-jenkins-lib@ci-linux-signing'
+
+pipeline {
+  agent { label 'windows' }
+
+  parameters {
+    string(
+      name: 'BUILD_TYPE',
+      description: 'Specify build type. Values: pr / nightly / release',
+      defaultValue: 'pr',
+    )
+  }
+
+  options {
+    timestamps()
+    /* Prevent Jenkins jobs from running forever */
+    timeout(time: 25, unit: 'MINUTES')
+    /* manage how many builds we keep */
+    buildDiscarder(logRotator(
+      numToKeepStr: '10',
+      daysToKeepStr: '30',
+      artifactNumToKeepStr: '3',
+    ))
+  }
+
+  environment {
+    TARGET = 'windows'
+    /* Improve make performance */
+    MAKEFLAGS = '-j4'
+    /* Disable colors in Nim compiler logs */
+    NIMFLAGS = '--colors:off'
+    /* Control output the filename */
+    STATUS_CLIENT_EXE = "pkg/${utils.pkgFilename('exe')}"
+    /* RFC 3161 timestamping URL for DigiCert */
+    WINDOWS_CODESIGN_TIMESTAMP_URL = 'http://timestamp.digicert.com'
+  }
+
+  stages {
+    stage('Deps') {
+      steps {
+        /* trigger fetching of git submodules */
+        sh 'make check-pkg-target-windows'
+        /* avoid re-compiling Nim by using cache */
+        cache(maxCacheSize: 250, caches: [[
+          $class: 'ArbitraryFileCache',
+          includes: '**/*',
+          path: 'vendor/nimbus-build-system/vendor/Nim/bin'
+        ]]) {
+          sh 'make deps'
+        }
+      }
+    }
+
+    stage('status-go') {
+      steps { sh 'make status-go' }
+    }
+
+    stage('Package') {
+      steps { script {
+        windows.bundle(env.STATUS_CLIENT_EXE)
+      } }
+    }
+
+    stage('Parallel Upload') {
+      parallel {
+        stage('Upload') {
+          steps { script {
+            env.PKG_URL = s3.uploadArtifact(env.STATUS_CLIENT_EXE)
+            jenkins.setBuildDesc(Exe: env.PKG_URL)
+          } }
+        }
+        stage('Archive') {
+          steps { script {
+            archiveArtifacts(env.STATUS_CLIENT_EXE)
+          } }
+        }
+      }
+    }
+  }
+  post {
+    success { script { github.notifyPR(true) } }
+    failure { script { github.notifyPR(false) } }
+    always { cleanWs() }
+  }
+}
