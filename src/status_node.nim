@@ -1,12 +1,9 @@
 import NimQml, chronicles, os, strformat
 
-#import app/node/core as node
-#import app/utilsView/core as utilsView
-#import status/signals/core as signals
-#import status/types
-#import status/constants
+import app/node/core as node
+import status/signals/core as signals
 import status_go
-#import status/status as statuslib
+import status/status as statuslib
 import ./eventemitter
 
 var signalsQObjPointer: pointer
@@ -28,9 +25,9 @@ proc mainProc() =
 
   let
     fleetConfig = readFile(joinPath(getAppDir(), fleets))
-   # status = statuslib.newStatusInstance(fleetConfig)
+    status = statuslib.newStatusInstance()
     
-  #status.initNode()
+  status.initNode()
 
   enableHDPI()
   initializeOpenGL()
@@ -85,23 +82,19 @@ proc mainProc() =
   app.installEventFilter(dockShowAppEvent)
   app.installEventFilter(osThemeEvent)
 
- # let signalController = signals.newController(status)
-  #defer:
-   # signalsQObjPointer = nil
-    #signalController.delete()
+  let signalController = signals.newController(status)
+  defer:
+    signalsQObjPointer = nil
+    signalController.delete()
 
   # We need this global variable in order to be able to access the application
   # from the non-closure callback passed to `libstatus.setSignalEventCallback`
-  #signalsQObjPointer = cast[pointer](signalController.vptr)
+  signalsQObjPointer = cast[pointer](signalController.vptr)
 
- 
- # var node = node.newController(status, netAccMgr)
-  #defer: node.delete()
-  #engine.setRootContextProperty("nodeModel", node.variant)
-
-  #var utilsController = utilsView.newController(status)
-  #defer: utilsController.delete()
-  #engine.setRootContextProperty("utilsModel", utilsController.variant)
+  var node = node.newController(status, fleetConfig)
+  defer: node.delete()
+  engine.setRootContextProperty("nodeModel", node.variant)
+  node.init()
 
   proc changeLanguage(locale: string) =
     if (locale == currentLanguageCode):
@@ -110,29 +103,12 @@ proc mainProc() =
     let shouldRetranslate = not defined(linux)
     engine.setTranslationPackage(joinPath(i18nPath, fmt"qml_{locale}.qm"), shouldRetranslate)
 
-
-
-  #  status.tasks.marathon.onLoggedIn()
-
-
-
   # this should be the last defer in the scope
   defer:
     info "Status app is shutting down..."
-    #status.tasks.teardown()
+    status.tasks.teardown()
 
-
-  #initControllers()
-
-  # Handle node.stopped signal when user has logged out
-#  status.events.once("nodeStopped") do(a: Args):
-    # TODO: remove this once accounts are not tracked in the AccountsModel
- #   status.reset()
-
-    # 2. Re-init controllers that don't require a running node
-  #  initControllers()
-
-#  engine.setRootContextProperty("signals", signalController.variant)
+  engine.setRootContextProperty("signals", signalController.variant)
  
   var prValue = newQVariant(if defined(production): true else: false)
   engine.setRootContextProperty("production", prValue)
@@ -148,9 +124,8 @@ proc mainProc() =
   # it will be passed as a regular C function to libstatus. This means that
   # we cannot capture any local variables here (we must rely on globals)
   var callback: SignalCallback = proc(p0: cstring) {.cdecl.} =
-    discard
-   # if signalsQObjPointer != nil:
-      #signal_handler(signalsQObjPointer, p0, "receiveSignal")
+    if signalsQObjPointer != nil:
+      signal_handler(signalsQObjPointer, p0, "receiveSignal")
 
   status_go.setSignalEventCallback(callback)
 

@@ -12,36 +12,59 @@ import QtQuick.Controls.Universal 2.12
 import DotherSide 0.1
 
 import "./shared"
+import "./shared/status"
 import "./imports"
+import "./app"
 
 StatusWindow {
     property bool popupOpened: false
 
+    function openPopup(popupComponent, params = {}) {
+        const popup = popupComponent.createObject(applicationWindow, params);
+        popup.open()
+    }
+
     Universal.theme: Universal.System
 
+    function genHexString(len) {
+        const hex = '0123456789ABCDEF';
+        let output = '';
+        for (let i = 0; i < len; ++i) {
+            output += hex.charAt(Math.floor(Math.random() * hex.length));
+        }
+        return output;
+    }
+
     Settings {
-        id: globalSettings
-        category: "global"
-        fileName: profileModel.settings.globalSettingsFile
+        id: appSettings
+        fileName: nodeModel.dataDir + "/qt/settings"
         property string locale: "en"
         property int theme: 2
 
-        Component.onCompleted: {
-            profileModel.changeLocale(locale)
-        }
+        property int networkId: 1
+        property bool logEnabled: true
+        property string logFile: "geth.log"
+        property string logLevel: "INFO"
+        property string dataDir: nodeModel.dataDir
+        property string fleet: Constants.eth_prod
+        property string nodeKey: genHexString(64)
+        property string bloomLevel: "full"
+        property bool useWakuV2: false
     }
 
     id: applicationWindow
     objectName: "mainWindow"
-    minimumWidth: 900
-    minimumHeight: 600
-    width: 1232
-    height: 770
+    width: 500
+    height: 400
+    minimumWidth: width
+    minimumHeight: height
+    maximumWidth: width
+    maximumHeight: height
     color: Style.current.background
     title: {
         // Set application settings
         //% "Status Desktop"
-        Qt.application.name = qsTrId("status-desktop")
+        Qt.application.name = "Status Node"
         Qt.application.organization = "Status"
         Qt.application.domain = "status.im"
         return Qt.application.name
@@ -52,18 +75,8 @@ StatusWindow {
     Connections {
         target: applicationWindow
         onClosing: {
-            /*if (loader.sourceComponent == login) {
-                applicationWindow.visible = false
-                close.accepted = false
-            }
-            else if (loader.sourceComponent == app) {
-                if (loader.item.appSettings.quitOnClose) {
-                    close.accepted = true
-                } else {
-                    applicationWindow.visible = false
-                    close.accepted = false
-                }
-            }*/
+            applicationWindow.visible = false
+            close.accepted = false
         }
 
         onActiveChanged: {
@@ -86,11 +99,11 @@ StatusWindow {
     }
 
     function changeThemeFromOutside() {
-        Style.changeTheme(globalSettings.theme, systemPalette.isCurrentSystemThemeDark())
+        Style.changeTheme(appSettings.theme, systemPalette.isCurrentSystemThemeDark())
     }
 
     Component.onCompleted: {
-        Style.changeTheme(globalSettings.theme, systemPalette.isCurrentSystemThemeDark())
+        Style.changeTheme(appSettings.theme, systemPalette.isCurrentSystemThemeDark())
         setX(Qt.application.screens[0].width / 2 - width / 2);
         setY(Qt.application.screens[0].height / 2 - height / 2);
 
@@ -149,11 +162,12 @@ StatusWindow {
         }
     }
 
-   
-    Loader {
-        id: loader
-        anchors.fill: parent
-        property var appSettings
+    AppLayout {
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.leftMargin: Style.current.padding
+        anchors.rightMargin: Style.current.padding
     }
 
     MacTrafficLights {
@@ -164,24 +178,11 @@ StatusWindow {
         visible: Qt.platform.os === "osx" && !applicationWindow.isFullScreen
 
         onClose: {
-            if (loader.sourceComponent == login) {
-                Qt.quit();
-            }
-            else if (loader.sourceComponent == app) {
-                if (loader.item.appSettings.quitOnClose) {
-                    Qt.quit();
-                } else {
-                    applicationWindow.visible = false;
-                }
-            }
+            applicationWindow.visible = false;
         }
 
         onMinimised: {
             applicationWindow.showMinimized()
-        }
-
-        onMaximized: {
-            applicationWindow.toggleFullScreen()
         }
     }
 }

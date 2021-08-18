@@ -1,0 +1,4 @@
+module Style
+singleton Style 1.0 ./Style.qml
+singleton Constants 1.0 ./Constants.qml
+singleton Utils 1.0 ./Utils.qml

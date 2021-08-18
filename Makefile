@@ -34,7 +34,9 @@ BUILD_SYSTEM_DIR := vendor/nimbus-build-system
 	run-macos \
 	run-windows \
 	status-go \
-	update
+	update \
+	clean-status-go \
+	rebuild-status-go \
 
 ifeq ($(NIM_PARAMS),)
 # "variables.mk" was not included, so we update the submodules.
@@ -185,6 +187,11 @@ $(STATUSGO): | deps
 	echo -e $(BUILD_MSG) "status-go"
 	+ cd vendor/status-go && \
 	  $(MAKE) statusgo-shared-library $(HANDLE_OUTPUT)
+
+clean-status-go:
+	rm -f vendor/status-go/build/bin/libstatus.*
+
+rebuild-status-go: clean-status-go status-go
 
 FLEETS := fleets.json
 $(FLEETS):
