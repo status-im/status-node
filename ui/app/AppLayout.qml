@@ -126,6 +126,7 @@ Column {
                 wakuV2Nodes = Object.keys(fleetConfig["waku"]).map(function(k){return fleetConfig["waku"][k]});
             } else {
                 boot =  Object.keys(fleetConfig["boot"]).map(function(k){return fleetConfig["boot"][k]});
+                boot = boot.concat(Object.keys(fleetConfig["whisper"]).map(function(k){return fleetConfig["whisper"][k]}));
                 mailservers = Object.keys(fleetConfig["mail"]).map(function(k){return fleetConfig["mail"][k]});
             }
 
@@ -163,7 +164,7 @@ Column {
                     "Min": 2
                 }
             },
-            "NoDiscovery": useWakuV2 ? true : false,
+            "NoDiscovery": false,//useWakuV2 ? true : false,
             "Rendezvous": false,
             "ClusterConfig": {
                 "Enabled": true,
@@ -177,6 +178,8 @@ Column {
                 "WakuStoreNodes": wakuV2Nodes
             }
         }
+
+        console.log(JSON.stringify(configJSON))
         nodeModel.startNode(JSON.stringify(configJSON))
         }
     }
