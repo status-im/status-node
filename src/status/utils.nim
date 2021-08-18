@@ -1,4 +1,4 @@
-import json, random, strutils, strformat, tables, chronicles, unicode, times
+import json, strutils, strformat, tables, chronicles, unicode, times
 from sugar import `=>`, `->`
 import stint
 from times import getTime, toUnix, nanosecond

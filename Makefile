@@ -224,9 +224,6 @@ DEFAULT_TENOR_API_KEY := DU7DWZ27STB2
 TENOR_API_KEY ?= $(DEFAULT_TENOR_API_KEY)
 NIM_PARAMS += -d:TENOR_API_KEY:"$(TENOR_API_KEY)"
 
-# generate a status-node.log file with chronicles output. This file will be truncated each time the app starts
-NIM_PARAMS += -d:chronicles_sinks="textlines[stdout],textlines[nocolors,file(status-node.log,truncate)]"
-
 RESOURCES_LAYOUT := -d:development
 
 status_node: NIM_PARAMS += $(RESOURCES_LAYOUT)

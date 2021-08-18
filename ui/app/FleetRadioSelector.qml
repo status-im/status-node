@@ -7,31 +7,14 @@ import "../shared/status"
 
 StatusRadioButtonRow {
     property string fleetName: ""
-    property string newFleet: ""
     text: fleetName
     buttonGroup: fleetSettings
     checked: appSettings.fleet === text
     onRadioCheckedChanged: {
         if (checked) {
             if (appSettings.fleet === fleetName) return;
-            newFleet = fleetName;
-            openPopup(confirmDialogComponent)
-        }
-    }
-
-    Component {
-        id: confirmDialogComponent
-        ConfirmationDialog {
-            //% "Warning!"
-            title: qsTrId("close-app-title")
-            //% "Change fleet to %1"
-            confirmationText: qsTrId("change-fleet-to--1").arg(newFleet)
-            onConfirmButtonClicked: {
-                appSettings.fleet = newFleet
-            }
-            onClosed: {
-                destroy();
-            }
+            appSettings.fleet = fleetName
+            close();
         }
     }
 }

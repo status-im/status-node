@@ -1,5 +1,5 @@
-import NimQml, chronicles, strutils, json
-import ../../status/[status, node, types, settings]
+import NimQml, chronicles
+import ../../status/[status, node, settings]
 import ../../status/signals/types as signal_types
 import ../../status/libstatus/accounts/constants
 

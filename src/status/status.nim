@@ -1,5 +1,3 @@
-import libstatus/core as libstatus_core
-import types as libstatus_types
 import node, settings
 import libstatus/settings as libstatus_settings
 import ../eventemitter

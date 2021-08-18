@@ -1,5 +1,5 @@
 import # std libs
-  json, os, sequtils, strutils
+  os, sequtils, strutils
 
 import # vendor libs
   confutils
