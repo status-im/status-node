@@ -333,16 +333,12 @@ $(STATUS_CLIENT_DMG): status_node $(DMG_TOOL)
 		$(MACOS_OUTER_BUNDLE) \
 		-executable=$(MACOS_OUTER_BUNDLE)/Contents/MacOS/status_node \
 		-qmldir=ui
-	macdeployqt \
-		$(MACOS_INNER_BUNDLE) \
-		-executable=$(MACOS_INNER_BUNDLE)/Contents/MacOS/QtWebEngineProcess
 
 	# if MACOS_CODESIGN_IDENT is not set then the outer and inner .app
 	# bundles are not signed
 ifdef MACOS_CODESIGN_IDENT
-	scripts/sign-macos-pkg.sh $(MACOS_OUTER_BUNDLE) $(MACOS_CODESIGN_IDENT)
-	scripts/sign-macos-pkg.sh $(MACOS_INNER_BUNDLE) $(MACOS_CODESIGN_IDENT) \
-		--entitlements QtWebEngineProcess.plist
+	scripts/sign-macos-pkg.sh $(MACOS_CODESIGN_IDENT)
+	scripts/sign-macos-pkg.sh $(MACOS_CODESIGN_IDENT)
 endif
 	echo -e $(BUILD_MSG) "dmg"
 	mkdir -p pkg
