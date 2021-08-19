@@ -1,6 +1,6 @@
 import NimQml, tables, json, chronicles, strutils, json_serialization
 import ../types as status_types
-import types, stats
+import types, stats, discovery
 import ../status
 import ../../eventemitter
 
@@ -47,6 +47,7 @@ QtObject:
       return
     var signal: Signal = case signalType:
       of SignalType.Stats: stats.fromEvent(jsonSignal)
+      of SignalType.DiscoverySummary: discovery.fromEvent(jsonSignal)
       else: Signal()
 
     self.status.events.emit(signalType.event, signal)

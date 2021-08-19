@@ -122,7 +122,7 @@ StatusWindow {
     id: applicationWindow
     objectName: "mainWindow"
     width: 500
-    height: 400
+    height: 450
     minimumWidth: width
     minimumHeight: height
     maximumWidth: width

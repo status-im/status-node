@@ -35,3 +35,7 @@ proc init*(self: NodeController) =
 
   self.status.events.on(SignalType.NodeStopped.event) do (e:Args):
     self.view.setNodeActive(false)
+
+  self.status.events.on(SignalType.DiscoverySummary.event) do (e:Args):
+    var data = DiscoverySummarySignal(e)
+    self.view.setPeerSize(data.enodes.len)

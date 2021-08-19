@@ -17,3 +17,6 @@ type Stats* = object
 
 type StatsSignal* = ref object of Signal
   stats*: Stats
+
+type DiscoverySummarySignal* = ref object of Signal
+  enodes*: seq[string]

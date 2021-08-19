@@ -32,6 +32,11 @@ Column {
     }
 
     StatusSectionDescItem {
+        name: qsTr("Peers")
+        description: nodeModel.peerSize
+    }
+
+    StatusSectionDescItem {
         //% "App version"
         name: qsTrId("version")
         //% "Version: %1"

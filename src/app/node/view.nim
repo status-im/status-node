@@ -14,6 +14,7 @@ QtObject:
     ipAddress: string
     publicKey: string
     privateKey: string
+    peerSize: int
     nodeActive*: bool
 
   proc setup(self: NodeView) =
@@ -92,11 +93,6 @@ QtObject:
     config["nodeKey"] = newJString(self.privateKey)
     self.status.settings.startNode($config)
 
-  proc stopNode*(self: NodeView) {.slot.} =
-    self.status.settings.stopNode()
-    self.setNodeActive(false)
-    self.resetStats()
-
   proc copyToClipboard*(self: NodeView, content: string) {.slot.} =
     setClipBoardText(content)
 
@@ -117,3 +113,24 @@ QtObject:
 
   QtProperty[string] currentVersion:
     read = getCurrentVersion
+
+  proc getPeerSize*(self: NodeView): int {.slot.} = self.peerSize
+
+  proc peerSizeChanged*(self: NodeView, value: int) {.signal.}
+
+  proc setPeerSize*(self: NodeView, value: int) {.slot.} =
+    self.peerSize = value
+    self.peerSizeChanged(value)
+
+  proc resetPeers*(self: NodeView) {.slot.} =
+    self.setPeerSize(0)
+
+  QtProperty[int] peerSize:
+    read = getPeerSize
+    notify = peerSizeChanged
+
+  proc stopNode*(self: NodeView) {.slot.} =
+    self.status.settings.stopNode()
+    self.setNodeActive(false)
+    self.resetPeers()
+    self.resetStats()
