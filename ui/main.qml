@@ -13,6 +13,7 @@ import DotherSide 0.1
 
 import "./shared"
 import "./shared/status"
+import "./shared/status/core"
 import "./imports"
 import "./app"
 
@@ -26,30 +27,96 @@ StatusWindow {
 
     Universal.theme: Universal.System
 
-    function genHexString(len) {
-        const hex = '0123456789ABCDEF';
-        let output = '';
-        for (let i = 0; i < len; ++i) {
-            output += hex.charAt(Math.floor(Math.random() * hex.length));
+    property bool useWakuV2:  appSettings.fleet == "wakuv2.prod" || appSettings.fleet == "wakuv2.test"
+
+    function startNode(){
+        let fleetConfig = JSON.parse(nodeModel.fleetConfig)["fleets"][appSettings.fleet];
+        let boot = [];
+        let mailservers = [];
+        let wakuV2Nodes = [];
+
+        if(applicationWindow.useWakuV2){
+            wakuV2Nodes = Object.keys(fleetConfig["waku"]).map(function(k){return fleetConfig["waku"][k]});
+        } else {
+            boot = Object.keys(fleetConfig["boot"]).map(function(k){return fleetConfig["boot"][k]});
+            boot = boot.concat(Object.keys(fleetConfig["whisper"]).map(function(k){return fleetConfig["whisper"][k]}));
+            mailservers = Object.keys(fleetConfig["mail"]).map(function(k){return fleetConfig["mail"][k]});
         }
-        return output;
+
+        let configJSON = {
+            "EnableNTPSync": true,
+            "KeyStoreDir": appSettings.dataDir + "keystore",
+            "NetworkId": appSettings.networkId,
+            "LogEnabled": appSettings.logEnabled,
+            "LogFile": appSettings.logFile,
+            "LogLevel": appSettings.logLevel,
+            "ListenAddr": "0.0.0.0:30303",    // TODO: Add setting?
+            "HTTPEnabled": true, // TODO: Add setting
+            "HTTPHost": "127.0.0.1", // TODO: Add setting
+            "DataDir": appSettings.dataDir,
+            "HTTPPort": 8545, // TODO: Add setting
+            "APIModules": "eth,web3,admin",  // TODO: Add setting
+            "RegisterTopics": ["whispermail"],
+            "WakuConfig": {
+                "Enabled": !applicationWindow.useWakuV2,
+                "DataDir": "./waku",
+                "BloomFilterMode": false,
+                "LightClient": false,
+                "MinimumPoW": 0.001,
+                "FullNode": true
+            },
+            "WakuV2Config": {
+                "Enabled": applicationWindow.useWakuV2,
+                "Host": "0.0.0.0", // TODO: Add setting
+                "Port": 60000 // TODO: Add setting
+            },
+            "RequireTopics": {
+                "whisper": {
+                    "Max": 2,
+                    "Min": 2
+                }
+            },
+            "NoDiscovery": applicationWindow.useWakuV2 ? true : false,
+            "Rendezvous": false,
+            "ClusterConfig": {
+                "Enabled": true,
+                "Fleet": appSettings.fleet,
+                "RendezvousNodes": [],
+                "BootNodes": boot,
+                "TrustedMailServers": mailservers,
+                "PushNotificationsServers": [],
+                "StaticNodes": [],
+                "WakuNodes": wakuV2Nodes,
+                "WakuStoreNodes": wakuV2Nodes
+            }
+        }
+
+        nodeModel.startNode(JSON.stringify(configJSON))
     }
+
 
     Settings {
         id: appSettings
         fileName: nodeModel.dataDir + "/qt/settings"
         property string locale: "en"
         property int theme: 2
-
         property int networkId: 1
         property bool logEnabled: true
         property string logFile: "geth.log"
         property string logLevel: "INFO"
         property string dataDir: nodeModel.dataDir
         property string fleet: Constants.eth_prod
-        property string nodeKey: genHexString(64)
-        property string bloomLevel: "full"
         property bool useWakuV2: false
+
+        Component.onCompleted: {
+            timer.setTimeout(function(){
+                startNode()
+            }, 250);            
+        }
+    }
+
+    Timer {
+        id: timer
     }
 
     id: applicationWindow
@@ -108,10 +175,7 @@ StatusWindow {
         setY(Qt.application.screens[0].height / 2 - height / 2);
 
         applicationWindow.updatePosition();
-    }
-
-    signal navigateTo(string path)
-    
+    }    
 
     SystemTrayIcon {
         id: systemTray
@@ -149,6 +213,22 @@ StatusWindow {
             }
 
             MenuItem {
+                visible: !nodeModel.nodeActive
+                text: qsTr("Start node")
+                onTriggered: {
+                    startNode()
+                }
+            }
+
+            MenuItem {
+                visible: nodeModel.nodeActive
+                text: qsTr("Stop node")
+                onTriggered: {
+                    nodeModel.stopNode()
+                }
+            }
+
+            MenuItem {
                 //% "Quit"
                 text: qsTrId("quit")
                 onTriggered: Qt.quit()
@@ -164,6 +244,7 @@ StatusWindow {
 
     AppLayout {
         anchors.top: parent.top
+        anchors.bottom: parent.bottom
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.leftMargin: Style.current.padding

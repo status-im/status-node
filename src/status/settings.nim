@@ -14,3 +14,6 @@ proc startNode*(self: SettingsModel, jsonConfig: string) =
 
 proc stopNode*(self: SettingsModel) =
   libstatus_settings.stopNode()
+
+proc initNode*(self: SettingsModel) =
+  libstatus_settings.initNode()

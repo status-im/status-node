@@ -1,7 +1,7 @@
-import NimQml, chronicles
+import NimQml, chronicles, eth/[keys, p2p], os, json, httpclient
 import ../../status/[status, node, settings]
 import ../../status/signals/types as signal_types
-import ../../status/libstatus/accounts/constants
+import ../../status/libstatus/constants
 
 logScope:
   topics = "node-view"
@@ -11,15 +11,33 @@ QtObject:
     status*: Status
     stats*: Stats
     fleetConfig: string
+    ipAddress: string
+    publicKey: string
+    privateKey: string
     nodeActive*: bool
 
   proc setup(self: NodeView) =
+    var client = newHttpClient()
+    self.ipAddress = client.getContent("https://ipecho.net/plain")
+
+    let keyFilename = KEYSTOREDIR / "nodekey"
+    if(not fileExists(keyFilename)):
+      let signKeyPair = KeyPair.random(keys.newRng()[])
+      self.privateKey = $signKeyPair.seckey
+      writeFile(keyFilename, self.privateKey)
+      setFilePermissions(keyFilename, {FilePermission.fpUserRead})
+      self.publicKey = $signKeyPair.pubkey
+    else:
+      self.privateKey = readFile(keyFilename)
+      self.publicKey = $PrivateKey.fromHex(self.privateKey).get.toPublicKey()
+
     self.QObject.setup
 
   proc newNodeView*(status: Status, fleetConfig: string): NodeView =
     new(result)
     result.status = status
     result.nodeActive = false
+    result.ipAddress = "0.0.0.0"
     result.fleetConfig = fleetConfig
     result.setup
 
@@ -70,9 +88,32 @@ QtObject:
     notify = statsChanged
 
   proc startNode*(self: NodeView, jsonConfig: string) {.slot.} =
-    self.status.settings.startNode(jsonConfig)
+    let config = jsonConfig.parseJson
+    config["nodeKey"] = newJString(self.privateKey)
+    self.status.settings.startNode($config)
 
   proc stopNode*(self: NodeView) {.slot.} =
     self.status.settings.stopNode()
     self.setNodeActive(false)
     self.resetStats()
+
+  proc copyToClipboard*(self: NodeView, content: string) {.slot.} =
+    setClipBoardText(content)
+
+  proc getPublicKey*(self: NodeView): string {.slot.} = self.publicKey
+
+  QtProperty[string] publicKey:
+    read = getPublicKey
+
+  proc getIpAddress*(self: NodeView): string {.slot.} = self.ipAddress
+
+  QtProperty[string] ipAddress:
+    read = getIpAddress
+
+  const DESKTOP_VERSION {.strdefine.} = "0.0.0"
+
+  proc getCurrentVersion*(self: NodeView): string {.slot.} =
+    return DESKTOP_VERSION
+
+  QtProperty[string] currentVersion:
+    read = getCurrentVersion

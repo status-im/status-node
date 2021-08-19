@@ -20,6 +20,7 @@ proc newStatusInstance*(): Status =
   
 proc initNode*(self: Status) =
   self.tasks.init()
+  self.settings.initNode()
 
 proc reset*(self: Status) =
   discard

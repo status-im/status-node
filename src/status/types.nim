@@ -1,6 +1,6 @@
 import json, options, typetraits, tables, sequtils, strutils
 import json_serialization, stint
-import libstatus/accounts/constants
+import libstatus/constants
 import ../eventemitter
 
 type SignalType* {.pure.} = enum
