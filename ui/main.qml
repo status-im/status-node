@@ -40,8 +40,9 @@ StatusWindow {
             wakuV2Nodes = Object.keys(fleetConfig["waku"]).map(function(k){return fleetConfig["waku"][k]});
         } else {
             boot = Object.keys(fleetConfig["boot"]).map(function(k){return fleetConfig["boot"][k]});
-            static = Object.keys(fleetConfig["whisper"]).map(function(k){return fleetConfig["whisper"][k]});
             mailservers = Object.keys(fleetConfig["mail"]).map(function(k){return fleetConfig["mail"][k]});
+            static = Object.keys(fleetConfig["whisper"]).map(function(k){return fleetConfig["whisper"][k]});
+            static = mailservers.concat(static)
         }
 
         let configJSON = {
@@ -91,7 +92,7 @@ StatusWindow {
                 "WakuStoreNodes": wakuV2Nodes
             }
         }
-        
+
         nodeModel.startNode(JSON.stringify(configJSON))
     }
 
