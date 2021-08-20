@@ -43,7 +43,7 @@ Column {
         description: qsTrId("version---1").arg(nodeModel.currentVersion)
     }
 
-    Rate {}
+    //Rate {}
 
     StatusSettingsLineButton {
         //% "Fleet"
