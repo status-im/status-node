@@ -83,7 +83,7 @@ StatusWindow {
                 }
             },
             "NoDiscovery": applicationWindow.useWakuV2 ? true : false,
-            "Rendezvous": false,
+            "Rendezvous": true,
             "ClusterConfig": {
                 "Enabled": true,
                 "Fleet": appSettings.fleet,
