@@ -33,6 +33,7 @@ StatusWindow {
         let fleetConfig = JSON.parse(nodeModel.fleetConfig)["fleets"][appSettings.fleet];
         let boot = [];
         let static = [];
+        let rendezvous = [];
         let mailservers = [];
         let wakuV2Nodes = [];
 
@@ -40,17 +41,20 @@ StatusWindow {
             wakuV2Nodes = Object.keys(fleetConfig["waku"]).map(function(k){return fleetConfig["waku"][k]});
         } else {
             boot = Object.keys(fleetConfig["boot"]).map(function(k){return fleetConfig["boot"][k]});
+            rendezvous = Object.keys(fleetConfig["rendezvous"]).map(function(k){return fleetConfig["rendezvous"][k]});
             mailservers = Object.keys(fleetConfig["mail"]).map(function(k){return fleetConfig["mail"][k]});
             static = Object.keys(fleetConfig["whisper"]).map(function(k){return fleetConfig["whisper"][k]});
             static = mailservers.concat(static)
         }
 
         let configJSON = {
+            "AdvertiseAddr": nodeModel.ipAddress,
             "EnableNTPSync": true,
             "KeyStoreDir": appSettings.dataDir + "keystore",
             "NetworkId": appSettings.networkId,
             "LogEnabled": appSettings.logEnabled,
             "LogFile": appSettings.logFile,
+            "MaxPeers": 5000,
             "LogLevel": appSettings.logLevel,
             "ListenAddr": "0.0.0.0:30303",    // TODO: Add setting?
             "HTTPEnabled": true, // TODO: Add setting
@@ -74,16 +78,16 @@ StatusWindow {
             },
             "RequireTopics": {
                 "whisper": {
-                    "Max": 2,
-                    "Min": 2
+                    "Max": 4,
+                    "Min": 3
                 }
             },
             "NoDiscovery": applicationWindow.useWakuV2 ? true : false,
-            "Rendezvous": false,
+            "Rendezvous": true,
             "ClusterConfig": {
                 "Enabled": true,
                 "Fleet": appSettings.fleet,
-                "RendezvousNodes": [],
+                "RendezvousNodes": rendezvous,
                 "BootNodes": boot,
                 "TrustedMailServers": mailservers,
                 "PushNotificationsServers": [],
