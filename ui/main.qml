@@ -32,6 +32,7 @@ StatusWindow {
     function startNode(){
         let fleetConfig = JSON.parse(nodeModel.fleetConfig)["fleets"][appSettings.fleet];
         let boot = [];
+        let static = [];
         let mailservers = [];
         let wakuV2Nodes = [];
 
@@ -39,7 +40,7 @@ StatusWindow {
             wakuV2Nodes = Object.keys(fleetConfig["waku"]).map(function(k){return fleetConfig["waku"][k]});
         } else {
             boot = Object.keys(fleetConfig["boot"]).map(function(k){return fleetConfig["boot"][k]});
-            boot = boot.concat(Object.keys(fleetConfig["whisper"]).map(function(k){return fleetConfig["whisper"][k]}));
+            static = Object.keys(fleetConfig["whisper"]).map(function(k){return fleetConfig["whisper"][k]});
             mailservers = Object.keys(fleetConfig["mail"]).map(function(k){return fleetConfig["mail"][k]});
         }
 
@@ -85,12 +86,12 @@ StatusWindow {
                 "BootNodes": boot,
                 "TrustedMailServers": mailservers,
                 "PushNotificationsServers": [],
-                "StaticNodes": [],
+                "StaticNodes": static,
                 "WakuNodes": wakuV2Nodes,
                 "WakuStoreNodes": wakuV2Nodes
             }
         }
-
+        
         nodeModel.startNode(JSON.stringify(configJSON))
     }
 
