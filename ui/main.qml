@@ -55,7 +55,7 @@ StatusWindow {
             "LogEnabled": appSettings.logEnabled,
             "LogFile": appSettings.logFile,
             "MaxPeers": 5000,
-            "LogLevel": appSettings.logLevel,
+            "LogLevel":  appSettings.logLevel,
             "ListenAddr": "0.0.0.0:30303",    // TODO: Add setting?
             "HTTPEnabled": true, // TODO: Add setting
             "HTTPHost": "127.0.0.1", // TODO: Add setting
@@ -83,7 +83,7 @@ StatusWindow {
                 }
             },
             "NoDiscovery": applicationWindow.useWakuV2 ? true : false,
-            "Rendezvous": false,
+            "Rendezvous": true,
             "ClusterConfig": {
                 "Enabled": true,
                 "Fleet": appSettings.fleet,
